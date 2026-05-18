@@ -19,18 +19,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: List files (debug)
-        run: ls -la
+      - name: Install backend dependencies
+        run: cd todo-list-app/backend && npm install
 
-      - name: Install dependencies
+      - name: Verify frontend files
         run: |
-          if [ -d "todo-list-app" ]; then
-            cd todo-list-app && npm install
-          elif [ -f "package.json" ]; then
-            npm install
-          else
-            echo "No package.json found, skipping install"
-          fi
+          echo "Frontend files:"
+          ls todo-list-app/frontend/
 
-      - name: Run app check
-        run: echo "Build completed successfully!"
+      - name: Build success
+        run: echo "✅ CI Pipeline completed successfully!"
