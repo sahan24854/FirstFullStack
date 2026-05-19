@@ -1,50 +1,25 @@
-# Todo List App - Backend Documentation
+# Backend - Taskly API
 
-## Overview
-RESTful API backend for the Todo List application built with Express.js and TypeScript.
+Node.js/Express.js REST API for the Taskly task management application.
 
-## Project Structure
+## Quick Start
 
-```
-backend/
-├── src/
-│   ├── app.ts                 # Main application file
-│   ├── controllers/
-│   │   └── taskController.ts  # Task business logic
-│   ├── models/
-│   │   └── Task.ts           # Task model and in-memory storage
-│   └── routes/
-│       └── taskRoutes.ts      # Task API routes
-├── package.json
-├── tsconfig.json
-└── .env
-```
+### Installation
 
-## Dependencies
-
-### Production
-- `express`: Web framework
-- `cors`: Cross-Origin Resource Sharing
-- `dotenv`: Environment variable management
-- `uuid`: Unique identifier generation
-
-### Development
-- `typescript`: Type-safe JavaScript
-- `ts-node`: Run TypeScript directly
-- `@types/*`: Type definitions
-- `jest`: Testing framework
-
-## Running the Server
-
-### Development
 ```bash
 npm install
+```
+
+### Development
+
+```bash
 npm run dev
 ```
 
-The server starts on `http://localhost:5000`
+Server starts on `http://localhost:5000`
 
 ### Production
+
 ```bash
 npm run build
 npm start
@@ -52,256 +27,255 @@ npm start
 
 ## API Endpoints
 
-### Tasks
+### Tasks Management
 
 #### Get All Tasks
 ```
 GET /api/tasks
-```
-
-**Query Parameters:**
-- `status`: Filter by status (pending|completed)
-- `tag`: Filter by tag (Work|Todo|Personal|Urgent)
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "uuid",
-      "title": "Task title",
-      "tag": "Work",
-      "dueTime": "3:00 PM",
-      "status": "pending",
-      "completed": false,
-      "createdAt": "2024-05-06T10:00:00Z",
-      "updatedAt": "2024-05-06T10:00:00Z"
-    }
-  ],
-  "count": 1
-}
+Response: Task[]
 ```
 
 #### Get Task by ID
 ```
 GET /api/tasks/:id
+Response: Task | { error: string }
 ```
 
 #### Create Task
 ```
 POST /api/tasks
-Content-Type: application/json
-
-{
-  "title": "New task",
-  "tag": "Work",
-  "dueTime": "3:00 PM",
-  "priority": "high",
-  "description": "Optional description"
+Body: {
+  name: string (required),
+  tag?: 'work' | 'personal' | 'urgent' | 'todo',
+  date?: string (YYYY-MM-DD)
 }
-```
-
-**Response (201 Created):**
-```json
-{
-  "success": true,
-  "data": { /* task object */ }
-}
+Response: Task
 ```
 
 #### Update Task
 ```
 PUT /api/tasks/:id
-Content-Type: application/json
-
-{
-  "title": "Updated title",
-  "tag": "Todo",
-  "dueTime": "4:00 PM"
+Body: {
+  name?: string,
+  tag?: 'work' | 'personal' | 'urgent' | 'todo',
+  done?: boolean,
+  date?: string
 }
+Response: Task
 ```
 
 #### Delete Task
 ```
 DELETE /api/tasks/:id
+Response: { message: string, id: number }
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Task deleted successfully"
-}
+### Filters
+
+#### Get Tasks by Status
+```
+GET /api/tasks/status/:status
+Status: 'done' | 'pending'
+Response: Task[]
 ```
 
-#### Toggle Task Status
+#### Get Tasks by Tag
 ```
-PATCH /api/tasks/:id/toggle
+GET /api/tasks/tag/:tag
+Response: Task[]
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": { /* updated task with toggled status */ }
-}
+#### Get Today's Tasks
+```
+GET /api/today
+Response: Task[]
 ```
 
 #### Health Check
 ```
 GET /api/health
+Response: { status: string }
 ```
 
-## Task Model
+## Data Models
 
+### Task
 ```typescript
 interface Task {
-  id: string;                              // UUID
-  title: string;                           // Required
-  description?: string;                    // Optional
-  tag: 'Work' | 'Todo' | 'Personal' | 'Urgent';  // Required
-  dueDate?: string;                        // Optional
-  dueTime?: string;                        // Optional (e.g., "3:00 PM")
-  priority?: 'low' | 'medium' | 'high';    // Optional
-  status: 'pending' | 'completed';         // Defaults to 'pending'
-  completed: boolean;                      // Defaults to false
-  createdAt: string;                       // ISO timestamp
-  updatedAt: string;                       // ISO timestamp
+  id: number;
+  name: string;
+  tag: 'work' | 'personal' | 'urgent' | 'todo';
+  done: boolean;
+  date: string; // YYYY-MM-DD
+  createdAt: string; // ISO timestamp
+  updatedAt: string; // ISO timestamp
 }
+```
+
+## Project Structure
+
+```
+src/
+├── app.ts              # Express application setup
+├── controllers/
+│   └── taskController.ts  # Business logic
+├── models/
+│   └── Task.ts         # TypeScript interfaces
+└── routes/
+    └── taskRoutes.ts   # API endpoint definitions
+```
+
+## Environment Variables
+
+Create `.env` file in backend directory:
+
+```env
+PORT=5000
+NODE_ENV=development
+CORS_ORIGIN=http://localhost:3000
+```
+
+## Dependencies
+
+- **express** - Web framework
+- **cors** - Cross-origin resource sharing
+- **dotenv** - Environment variables
+- **uuid** - ID generation
+- **typescript** - Type safety
+- **ts-node** - TypeScript execution
+
+## Development
+
+### Setup
+
+```bash
+npm install
+```
+
+### Run in Development Mode
+
+```bash
+npm run dev
+```
+
+Uses ts-node to run TypeScript directly.
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+Compiles TypeScript to JavaScript in `dist/` folder.
+
+### Start Production Server
+
+```bash
+npm start
+```
+
+Runs compiled JavaScript from `dist/app.js`.
+
+## Features
+
+- ✅ Full CRUD operations for tasks
+- ✅ Task filtering by status and tag
+- ✅ Today's tasks endpoint
+- ✅ CORS configuration
+- ✅ Error handling
+- ✅ Request logging
+- ✅ TypeScript support
+- ✅ In-memory data storage
+
+## Future Enhancements
+
+- [ ] Database integration (MongoDB/PostgreSQL)
+- [ ] Authentication & authorization
+- [ ] Input validation with schema validation
+- [ ] Rate limiting
+- [ ] Comprehensive error codes
+- [ ] API documentation (Swagger)
+- [ ] Unit tests
+- [ ] Integration tests
+
+## Architecture Notes
+
+### Controllers
+Business logic for task operations. Can be extended with validation, transformations, etc.
+
+### Models
+TypeScript interfaces for type safety and IDE support.
+
+### Routes
+API endpoint definitions and request/response handling.
+
+### In-Memory Storage
+Currently uses an array. In production, replace with a real database:
+
+```typescript
+// Example: Connect to MongoDB
+import mongoose from 'mongoose';
+const db = await mongoose.connect(process.env.MONGODB_URI);
 ```
 
 ## Error Handling
 
-All error responses follow this format:
+All errors return JSON responses with appropriate HTTP status codes:
 
 ```json
 {
-  "success": false,
-  "error": "Error description"
+  "error": "Task not found"
 }
 ```
 
-Common HTTP Status Codes:
-- `200`: Success
-- `201`: Created
-- `400`: Bad Request (missing required fields)
-- `404`: Not Found
-- `500`: Internal Server Error
+## CORS Configuration
 
-## Example Usage
+Allow frontend from specific origin:
 
-### cURL Examples
+```javascript
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  credentials: true,
+}));
+```
 
-**Create a task:**
+Update `CORS_ORIGIN` in `.env` to allow access from different domains.
+
+## Testing API
+
+Use curl, Postman, or any HTTP client:
+
 ```bash
+# Get all tasks
+curl http://localhost:5000/api/tasks
+
+# Create task
 curl -X POST http://localhost:5000/api/tasks \
   -H "Content-Type: application/json" \
-  -d '{
-    "title": "Complete project",
-    "tag": "Work",
-    "dueTime": "5:00 PM",
-    "priority": "high"
-  }'
-```
+  -d '{"name": "New task", "tag": "work"}'
 
-**Get all tasks:**
-```bash
-curl http://localhost:5000/api/tasks
-```
-
-**Filter tasks:**
-```bash
-curl "http://localhost:5000/api/tasks?status=pending&tag=Work"
-```
-
-**Update a task:**
-```bash
-curl -X PUT http://localhost:5000/api/tasks/TASK_ID \
+# Update task
+curl -X PUT http://localhost:5000/api/tasks/1 \
   -H "Content-Type: application/json" \
-  -d '{
-    "title": "Updated title",
-    "status": "completed"
-  }'
+  -d '{"done": true}'
+
+# Delete task
+curl -X DELETE http://localhost:5000/api/tasks/1
 ```
 
-**Toggle task:**
-```bash
-curl -X PATCH http://localhost:5000/api/tasks/TASK_ID/toggle
-```
+## Performance Considerations
 
-**Delete a task:**
-```bash
-curl -X DELETE http://localhost:5000/api/tasks/TASK_ID
-```
+- In-memory storage is fast but limited to available RAM
+- For production, use a database for persistence and scalability
+- Add caching for frequently accessed data
+- Implement pagination for large datasets
+- Add request rate limiting
 
-## Configuration
+## Security Notes
 
-### Environment Variables (.env)
-
-```env
-PORT=5000                              # Server port
-NODE_ENV=development                   # Environment mode
-CORS_ORIGIN=http://localhost:3000     # Allowed frontend URL
-```
-
-### CORS Configuration
-
-The API is configured to accept requests from the frontend URL specified in `CORS_ORIGIN`. Update this when deploying to production.
-
-## Architecture
-
-### Models (Task.ts)
-- Defines Task interface and TaskModel class
-- Handles all data operations
-- Uses in-memory storage (can be replaced with database)
-
-### Controllers (taskController.ts)
-- Receives HTTP requests
-- Validates input
-- Calls model methods
-- Returns JSON responses
-
-### Routes (taskRoutes.ts)
-- Maps HTTP methods to controller functions
-- Defines API endpoints
-
-### App (app.ts)
-- Initializes Express application
-- Sets up middleware (CORS, JSON parsing)
-- Mounts routes
-- Starts server
-
-## Future Improvements
-
-- [ ] Replace in-memory storage with database (MongoDB/PostgreSQL)
-- [ ] Add authentication (JWT)
-- [ ] Add input validation (joi, yup)
-- [ ] Add logging (winston, morgan)
-- [ ] Add unit tests
-- [ ] Add rate limiting
-- [ ] Add request caching
-- [ ] Deploy to cloud (Heroku, AWS, etc.)
-
-## Troubleshooting
-
-### Port Already in Use
-```bash
-# Find and kill process using port 5000
-lsof -i :5000
-kill -9 <PID>
-```
-
-### CORS Errors
-- Check CORS_ORIGIN in .env matches frontend URL
-- Ensure cors middleware is properly configured
-
-### Module Not Found
-```bash
-npm install
-npm run build
-```
-
-## Support
-
-For questions or issues, refer to the main README.md in the project root.
+- Add input validation for all endpoints
+- Sanitize user inputs
+- Add authentication and authorization
+- Use HTTPS in production
+- Validate and log all requests
+- Consider using helmet.js for security headers

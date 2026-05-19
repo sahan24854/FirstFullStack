@@ -1,168 +1,138 @@
-import { Request, Response } from 'express';
-import { TaskModel, Task } from '../models/Task';
+import { Task, CreateTaskDto, UpdateTaskDto } from '../models/Task';
 
-const taskModel = new TaskModel();
+// In-memory database (replace with real DB in production)
+let tasks: Task[] = [
+  {
+    id: 1,
+    name: 'Design review meeting',
+    tag: 'work',
+    done: false,
+    date: '2026-05-19',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    name: 'Submit project report',
+    tag: 'urgent',
+    done: false,
+    date: '2026-05-20',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 3,
+    name: 'Buy groceries',
+    tag: 'personal',
+    done: true,
+    date: '2026-05-18',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 4,
+    name: 'Team standup',
+    tag: 'work',
+    done: false,
+    date: '2026-05-21',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 5,
+    name: 'Fix login bug',
+    tag: 'todo',
+    done: false,
+    date: '2026-05-22',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
 
-export const getTasks = (req: Request, res: Response): void => {
-  try {
-    const { status, tag } = req.query;
+let nextId = 6;
 
-    let tasks = taskModel.getAllTasks();
-
-    if (status) {
-      tasks = tasks.filter(task => task.status === status);
-    }
-
-    if (tag) {
-      tasks = tasks.filter(task => task.tag === tag);
-    }
-
-    res.json({
-      success: true,
-      data: tasks,
-      count: tasks.length,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch tasks',
-    });
+export class TaskController {
+  /**
+   * Get all tasks
+   */
+  static getAllTasks(): Task[] {
+    return tasks;
   }
-};
 
-export const getTaskById = (req: Request, res: Response): void => {
-  try {
-    const { id } = req.params;
-    const task = taskModel.getTaskById(id);
-
-    if (!task) {
-      res.status(404).json({
-        success: false,
-        error: 'Task not found',
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      data: task,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch task',
-    });
+  /**
+   * Get task by ID
+   */
+  static getTaskById(id: number): Task | undefined {
+    return tasks.find(t => t.id === id);
   }
-};
 
-export const createTask = (req: Request, res: Response): void => {
-  try {
-    const { title, description, tag, dueDate, dueTime, priority } = req.body;
-
-    if (!title || !tag) {
-      res.status(400).json({
-        success: false,
-        error: 'Title and tag are required',
-      });
-      return;
-    }
-
-    const newTask = taskModel.createTask({
-      title,
-      description,
-      tag,
-      dueDate,
-      dueTime,
-      priority,
-      status: 'pending',
-      completed: false,
-    });
-
-    res.status(201).json({
-      success: true,
-      data: newTask,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create task',
-    });
+  /**
+   * Create a new task
+   */
+  static createTask(dto: CreateTaskDto): Task {
+    const today = new Date().toISOString().split('T')[0];
+    const newTask: Task = {
+      id: nextId++,
+      name: dto.name,
+      tag: dto.tag || 'todo',
+      done: false,
+      date: dto.date || today,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    tasks.push(newTask);
+    return newTask;
   }
-};
 
-export const updateTask = (req: Request, res: Response): void => {
-  try {
-    const { id } = req.params;
-    const updateData = req.body;
+  /**
+   * Update a task
+   */
+  static updateTask(id: number, dto: UpdateTaskDto): Task | undefined {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return undefined;
 
-    const updatedTask = taskModel.updateTask(id, updateData);
+    if (dto.name !== undefined) task.name = dto.name;
+    if (dto.tag !== undefined) task.tag = dto.tag;
+    if (dto.done !== undefined) task.done = dto.done;
+    if (dto.date !== undefined) task.date = dto.date;
+    task.updatedAt = new Date().toISOString();
 
-    if (!updatedTask) {
-      res.status(404).json({
-        success: false,
-        error: 'Task not found',
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      data: updatedTask,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update task',
-    });
+    return task;
   }
-};
 
-export const deleteTask = (req: Request, res: Response): void => {
-  try {
-    const { id } = req.params;
-    const deleted = taskModel.deleteTask(id);
-
-    if (!deleted) {
-      res.status(404).json({
-        success: false,
-        error: 'Task not found',
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      message: 'Task deleted successfully',
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete task',
-    });
+  /**
+   * Delete a task
+   */
+  static deleteTask(id: number): boolean {
+    const index = tasks.findIndex(t => t.id === id);
+    if (index === -1) return false;
+    tasks.splice(index, 1);
+    return true;
   }
-};
 
-export const toggleTask = (req: Request, res: Response): void => {
-  try {
-    const { id } = req.params;
-    const updatedTask = taskModel.toggleTaskStatus(id);
-
-    if (!updatedTask) {
-      res.status(404).json({
-        success: false,
-        error: 'Task not found',
-      });
-      return;
+  /**
+   * Get tasks by status
+   */
+  static getTasksByStatus(status: 'done' | 'pending'): Task[] {
+    if (status === 'done') {
+      return tasks.filter(t => t.done);
+    } else {
+      return tasks.filter(t => !t.done);
     }
-
-    res.json({
-      success: true,
-      data: updatedTask,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to toggle task',
-    });
   }
-};
+
+  /**
+   * Get tasks by tag
+   */
+  static getTasksByTag(tag: string): Task[] {
+    return tasks.filter(t => t.tag === tag);
+  }
+
+  /**
+   * Get today's tasks
+   */
+  static getTodaysTasks(): Task[] {
+    const today = new Date().toISOString().split('T')[0];
+    return tasks.filter(t => t.date === today);
+  }
+}
