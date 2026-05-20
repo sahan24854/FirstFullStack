@@ -1,81 +1,165 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://localhost:5000/api';
 
 let tasks = [];
 let alerts = [];
+let userSessionContext = null;
 let currentFilter = 'all';
 let calYear = 2026;
 let calMonth = 4;
 
-const pageTitles = {
-  tasks: 'My Tasks',
-  calendar: 'Calendar',
-  alerts: 'Alerts',
-  profile: 'Profile'
+const localizationMatrix = {
+  en: {
+    logo: "To-Do List", menu_label: "Menu", nav_tasks: "Tasks", nav_calendar: "Calendar",
+    nav_alerts: "Alerts", nav_profile: "Profile", nav_settings: "Settings",
+    table_task: "Task", table_tag: "Tag", table_date: "Due Date", table_actions: "Actions",
+    stat_total: "Total tasks", stat_completed: "Completed", stat_progress: "In progress", stat_due: "Due today",
+    section_all_tasks: "All tasks", section_upcoming: "Upcoming tasks", btn_add: "Add",
+    weekly_summary_title: "Weekly Performance Summary", profile_edit_title: "Modify Profile Details",
+    label_name: "Display Name", label_bio: "Short Bio", custom_tags_title: "Workspace Tag Personalization",
+    setting_mode: "Interface Display Mode", setting_color: "Palette Configuration Tint", setting_lang: "Active Localization Engine"
+  },
+  si: {
+    logo: "කාර්ය ලැයිස්තුව", menu_label: "මෙනුව", nav_tasks: "කාර්යයන්", nav_calendar: "දින දර්ශනය",
+    nav_alerts: "නිවේදන", nav_profile: "ගිණුම", nav_settings: "සැකසුම්",
+    table_task: "කාර්යය", table_tag: "ටැග් එක", table_date: "අවසාන දිනය", table_actions: "ක්‍රියාකාරකම්",
+    stat_total: "මුළු කාර්යයන්", stat_completed: "නිමකල ඒවා", stat_progress: "සිදුකෙරෙමින් පවතින", stat_due: "අද දිනට නියමිත",
+    section_all_tasks: "සියලුම කාර්යයන්", section_upcoming: "මීළඟට නියමිත කාර්යයන්", btn_add: "එකතු කරන්න",
+    weekly_summary_title: "සතිපතා කාර්ය සාධන සාරාංශය", profile_edit_title: "පරිශීලක විස්තර වෙනස් කරන්න",
+    label_name: "ප්‍රදර්ශන නාමය", label_bio: "කෙටි ජීව දත්ත", custom_tags_title: "ටැග් පුද්ගලීකරණය",
+    setting_mode: "දර්ශන ප්‍රකාරය", setting_color: "වර්ණ තේමාව තෝරන්න", setting_lang: "භාෂාව වෙනස් කරන්න"
+  }
 };
 
-const sampleAlerts = [
-  { id: 1, type: 'warn', title: 'Task due soon', desc: 'Submit project report is due in 2 hours', time: '10 minutes ago', unread: true },
-  { id: 2, type: 'info', title: 'Reminder set', desc: 'Design review meeting tomorrow at 10am', time: '1 hour ago', unread: true },
-  { id: 3, type: 'success', title: 'Task completed', desc: 'Buy groceries marked as done', time: '3 hours ago', unread: true },
-  { id: 4, type: 'danger', title: 'Task overdue', desc: 'Call dentist was due yesterday', time: 'Yesterday', unread: false },
-  { id: 5, type: 'info', title: 'New task added', desc: 'Team standup added to your task list', time: '2 days ago', unread: false },
-];
+// 1. SECURITY & ACCESS PASS ENGINE PIPELINES
+async function requestOtpToken() {
+  const email = document.getElementById('auth-email').value.trim();
+  if (!email) return alert("Please enter a valid email address.");
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-  fetchTasks();
-  renderAlerts();
-  renderCal();
-});
-
-// PAGE NAVIGATION
-function showPage(page, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  el.classList.add('active');
-  document.getElementById('pageTitle').textContent = pageTitles[page];
-
-  if (page === 'calendar') {
-    renderCal();
-    renderUpcomingTasks();
+  try {
+    const res = await fetch(`${API_URL}/auth/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    if (res.ok) {
+      document.getElementById('otp-request-zone').style.display = 'none';
+      document.getElementById('otp-verification-zone').style.display = 'block';
+    } else {
+      alert("Failed to send OTP. Please try again.");
+    }
+  } catch (err) {
+    console.error("Auth server connection fault:", err);
+    mockFallbackAuthentication(email);
   }
 }
 
-// FETCH TASKS FROM API
+async function verifyOtpToken() {
+  const email = document.getElementById('auth-email').value.trim();
+  const otp = document.getElementById('auth-otp').value.trim();
+
+  try {
+    const res = await fetch(`${API_URL}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      userSessionContext = data.user;
+      completeSessionInitialization();
+    } else {
+      alert("Invalid validation token code.");
+    }
+  } catch (err) {
+    alert("Backend unreached. Applying immediate local offline workspace session.");
+    mockFallbackAuthentication(email);
+  }
+}
+
+function mockFallbackAuthentication(email) {
+  userSessionContext = {
+    id: "offline_user", email: email,
+    profile: { name: email.split('@')[0], bio: "Local baseline sandbox instance execution." },
+    settings: { theme: 'light', colorTheme: 'default', language: 'en' },
+    tags: [
+      { id: "t1", name: "Work", color: "work" },
+      { id: "t2", name: "Personal", color: "personal" },
+      { id: "t3", name: "Urgent", color: "urgent" },
+      { id: "t4", name: "Todo", color: "todo" }
+    ]
+  };
+  completeSessionInitialization();
+}
+
+function completeSessionInitialization() {
+  document.getElementById('auth-overlay').style.display = 'none';
+  
+  // Load settings configurations onto workspace DOM trees
+  applyTheme(userSessionContext.settings.theme);
+  applyPalette(userSessionContext.settings.colorTheme);
+  applyLanguage(userSessionContext.settings.language);
+  renderCustomTagsControlPanel();
+  populateTaskCreationTagDropdown();
+
+  // Draw user details context arrays
+  document.getElementById('user-avatar').textContent = userSessionContext.profile.name.substring(0,2).toUpperCase();
+  document.getElementById('user-name').textContent = userSessionContext.profile.name;
+  document.getElementById('user-email').textContent = userSessionContext.email;
+  
+  document.getElementById('profile-avatar-display').textContent = userSessionContext.profile.name.substring(0,2).toUpperCase();
+  document.getElementById('profile-name-display').textContent = userSessionContext.profile.name;
+  document.getElementById('profile-bio-display').textContent = userSessionContext.profile.bio;
+  document.getElementById('profile-email-display').textContent = userSessionContext.email;
+
+  document.getElementById('edit-profile-name').value = userSessionContext.profile.name;
+  document.getElementById('edit-profile-bio').value = userSessionContext.profile.bio;
+
+  fetchTasks();
+  fetchAlertsAndNotifications();
+  fetchWeeklySummaryStream();
+}
+
+async function persistUserSessionContext() {
+  if (!userSessionContext || userSessionContext.id === 'offline_user') return;
+  try {
+    await fetch(`${API_URL}/auth/users/${userSessionContext.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profile: userSessionContext.profile,
+        settings: userSessionContext.settings,
+        tags: userSessionContext.tags
+      })
+    });
+  } catch (err) {
+    console.error("Failed to persist user settings:", err);
+  }
+}
+
+// 2. CORE UTILITY DATA STREAM CALLS
 async function fetchTasks() {
   try {
-    const response = await fetch(`${API_URL}/tasks`);
+    const response = await fetch(`${API_URL}/tasks?userId=${userSessionContext.id}`);
     tasks = await response.json();
-    renderTasks();
-    updateCounts();
   } catch (error) {
-    console.error('Error fetching tasks:', error);
-    loadSampleTasks();
+    // If backend is configured to use mock data arrays, load baseline mocks scoped to active context tags
+    tasks = [
+      { id: 1, name: 'Complete UI implementation review', tagId: userSessionContext.tags[2].id, done: false, date: '2026-05-20' },
+      { id: 2, name: 'Prepare project documentation portfolio', tagId: userSessionContext.tags[0].id, done: false, date: '2026-05-24' },
+      { id: 3, name: 'Clean workspace environment directories', tagId: userSessionContext.tags[1].id, done: true, date: '2026-05-19' }
+    ];
   }
-}
-
-// LOAD SAMPLE TASKS (fallback if API is down)
-function loadSampleTasks() {
-  tasks = [
-    { id: 1, name: 'Design review meeting', tag: 'work', done: false, date: '2026-05-19' },
-    { id: 2, name: 'Submit project report', tag: 'urgent', done: false, date: '2026-05-20' },
-    { id: 3, name: 'Buy groceries', tag: 'personal', done: true, date: '2026-05-18' },
-    { id: 4, name: 'Team standup', tag: 'work', done: false, date: '2026-05-21' },
-    { id: 5, name: 'Fix login bug', tag: 'todo', done: false, date: '2026-05-22' },
-  ];
   renderTasks();
   updateCounts();
 }
 
-// RENDER TASKS
 function renderTasks() {
   const list = document.getElementById('task-list');
   let filtered = tasks;
 
   if (currentFilter === 'today') {
-    const today = new Date().toISOString().split('T')[0];
-    filtered = tasks.filter(t => !t.done && t.date === today);
+    const todayStr = new Date().toISOString().split('T')[0];
+    filtered = tasks.filter(t => !t.done && t.date === todayStr);
   } else if (currentFilter === 'done') {
     filtered = tasks.filter(t => t.done);
   }
@@ -85,83 +169,42 @@ function renderTasks() {
     return;
   }
 
-  list.innerHTML = filtered.map(t => `
-    <div class="task-row">
-      <div class="check ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})" title="Mark as done">
-        ${t.done ? '<i class="ti ti-check"></i>' : ''}
+  list.innerHTML = filtered.map(t => {
+    const associatedTag = userSessionContext.tags.find(tag => tag.id === t.tagId) || { name: 'Todo', color: 'todo' };
+    return `
+      <div class="task-row">
+        <div class="check ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})" title="Mark as done">
+          ${t.done ? '<i class="ti ti-check"></i>' : ''}
+        </div>
+        <div class="task-name ${t.done ? 'done' : ''}">${escapeHtml(t.name)}</div>
+        <span class="tag ${associatedTag.color}">${associatedTag.name}</span>
+        <div class="task-date">${formatDate(t.date)}</div>
+        <div class="task-actions">
+          <button class="icon-btn" onclick="deleteTask(${t.id})" title="Delete task">
+            <i class="ti ti-trash"></i>
+          </button>
+        </div>
       </div>
-      <div class="task-name ${t.done ? 'done' : ''}">${escapeHtml(t.name)}</div>
-      <span class="tag ${t.tag}">${t.tag}</span>
-      <div class="task-date">${formatDate(t.date)}</div>
-      <div class="task-actions">
-        <button class="icon-btn" onclick="deleteTask(${t.id})" title="Delete task" aria-label="Delete task">
-          <i class="ti ti-trash"></i>
-        </button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
-// TOGGLE TASK
-async function toggleTask(id) {
-  const task = tasks.find(t => t.id === id);
-  if (!task) return;
-
-  task.done = !task.done;
-
-  try {
-    const response = await fetch(`${API_URL}/tasks/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(task)
-    });
-
-    if (response.ok) {
-      renderTasks();
-      updateCounts();
-    }
-  } catch (error) {
-    console.error('Error updating task:', error);
-    renderTasks();
-  }
-}
-
-// DELETE TASK
-async function deleteTask(id) {
-  if (!confirm('Are you sure you want to delete this task?')) return;
-
-  try {
-    const response = await fetch(`${API_URL}/tasks/${id}`, {
-      method: 'DELETE'
-    });
-
-    if (response.ok) {
-      tasks = tasks.filter(t => t.id !== id);
-      renderTasks();
-      updateCounts();
-    }
-  } catch (error) {
-    console.error('Error deleting task:', error);
-  }
-}
-
-// ADD TASK
 async function addTask() {
   const input = document.getElementById('task-input');
+  const tagSelect = document.getElementById('task-tag-select');
+  const dateSelect = document.getElementById('task-date-select');
+  
   const name = input.value.trim();
+  if (!name) return alert('Please specify a valid task name.');
 
-  if (!name) {
-    alert('Please enter a task name');
-    return;
-  }
-
-  const today = new Date().toISOString().split('T')[0];
-
+  const defaultToday = new Date().toISOString().split('T')[0];
   const newTask = {
+    id: Date.now(),
     name,
-    tag: 'todo',
+    tagId: tagSelect.value,
     done: false,
-    date: today
+    date: dateSelect.value || defaultToday,
+    userId: userSessionContext.id
   };
 
   try {
@@ -170,44 +213,258 @@ async function addTask() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTask)
     });
-
     if (response.ok) {
-      const addedTask = await response.json();
-      tasks.push(addedTask);
-      input.value = '';
-      renderTasks();
-      updateCounts();
+      const added = await response.json();
+      tasks.push(added);
     }
-  } catch (error) {
-    console.error('Error adding task:', error);
-    // Add to local list as fallback
-    newTask.id = Math.max(...tasks.map(t => t.id), 0) + 1;
-    tasks.push(newTask);
-    input.value = '';
-    renderTasks();
-    updateCounts();
+  } catch (err) {
+    tasks.push(newTask); // Fallback optimization drop
   }
-}
 
-// HANDLE KEY PRESS
-function handleKey(e) {
-  if (e.key === 'Enter') addTask();
-}
-
-// FOCUS ADD INPUT
-function focusAdd() {
-  document.getElementById('task-input').focus();
-}
-
-// SET FILTER
-function setFilter(f, el) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
+  input.value = '';
   renderTasks();
+  updateCounts();
+  if(document.getElementById('page-calendar').classList.contains('active')) renderCal();
 }
 
-// UPDATE COUNTS
+async function toggleTask(id) {
+  const t = tasks.find(task => task.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  
+  try {
+    await fetch(`${API_URL}/tasks/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(t)
+    });
+  } catch (err) {}
+  
+  renderTasks();
+  updateCounts();
+}
+
+async function deleteTask(id) {
+  try {
+    await fetch(`${API_URL}/tasks/${id}?userId=${userSessionContext.id}`, { method: 'DELETE' });
+  } catch (err) {}
+  tasks = tasks.filter(t => t.id !== id);
+  renderTasks();
+  updateCounts();
+  if(document.getElementById('page-calendar').classList.contains('active')) renderCal();
+}
+
+// 3. WORKSPACE DICTIONARY TRANSLATOR INJECTOR
+function applyLanguage(lang) {
+  userSessionContext.settings.language = lang;
+  const tokenDictionary = localizationMatrix[lang] || localizationMatrix['en'];
+  
+  document.querySelectorAll('[data-loc]').forEach(element => {
+    const translationToken = element.getAttribute('data-loc');
+    if (tokenDictionary[translationToken]) {
+      element.textContent = tokenDictionary[translationToken];
+    }
+  });
+  document.getElementById('lang-select-dropdown').value = lang;
+  persistUserSessionContext();
+}
+
+// 4. INTERFACE ENVIRONMENT PREFERENCES MANAGEMENT
+function applyTheme(theme) {
+  userSessionContext.settings.theme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  
+  document.getElementById('theme-btn-light').classList.remove('active');
+  document.getElementById('theme-btn-dark').classList.remove('active');
+  document.getElementById(`theme-btn-${theme}`).classList.add('active');
+  persistUserSessionContext();
+}
+
+function applyPalette(palette) {
+  userSessionContext.settings.colorTheme = palette;
+  document.documentElement.setAttribute('data-color-theme', palette);
+  persistUserSessionContext();
+}
+
+// 5. CUSTOM TAG LOGIC HANDLERS
+function populateTaskCreationTagDropdown() {
+  const select = document.getElementById('task-tag-select');
+  select.innerHTML = userSessionContext.tags.map(tag => 
+    `<option value="${tag.id}">${tag.name}</option>`
+  ).join('');
+}
+
+function renderCustomTagsControlPanel() {
+  const container = document.getElementById('custom-tags-current-list');
+  container.innerHTML = userSessionContext.tags.map(tag => 
+    `<span class="tag ${tag.color}" style="font-size:12px; padding:4px 10px;">${tag.name}</span>`
+  ).join('');
+}
+
+function createUserCustomTag() {
+  const nameInput = document.getElementById('new-tag-name-input');
+  const colorSelect = document.getElementById('new-tag-color-select');
+  const name = nameInput.value.trim();
+
+  if(!name) return alert("Please specify a label identifier for custom tags.");
+
+  const newTag = {
+    id: 'tag_' + Date.now(),
+    name: name,
+    color: colorSelect.value
+  };
+
+  userSessionContext.tags.push(newTag);
+  nameInput.value = '';
+  
+  renderCustomTagsControlPanel();
+  populateTaskCreationTagDropdown();
+  renderTasks();
+  persistUserSessionContext();
+}
+
+// 6. PROFILE MODIFICATION PANEL
+function saveProfileChanges() {
+  const newName = document.getElementById('edit-profile-name').value.trim();
+  const newBio = document.getElementById('edit-profile-bio').value.trim();
+
+  if(!newName) return alert("Profile name tracking string cannot be empty.");
+
+  userSessionContext.profile.name = newName;
+  userSessionContext.profile.bio = newBio;
+
+  document.getElementById('user-name').textContent = newName;
+  document.getElementById('profile-name-display').textContent = newName;
+  document.getElementById('profile-bio-display').textContent = newBio;
+  
+  alert("Profile metadata metrics updated safely.");
+  persistUserSessionContext();
+}
+
+// 7. NOTIFICATIONS CENTER WIDGET WITH EXPLICIT DYNAMIC PALETTE COLORING
+async function fetchAlertsAndNotifications() {
+  try {
+    const response = await fetch(`${API_URL}/alerts?userId=${userSessionContext.id}`);
+    alerts = await response.json();
+  } catch (error) {
+    alerts = [
+      { id: 1, title: 'Task Due Soon', desc: 'Complete UI review component deadline approaching', associatedTagId: userSessionContext.tags[2].id },
+      { id: 2, title: 'Document Portfolio Lifecycle', desc: 'Portfolio assembly assigned to scope', associatedTagId: userSessionContext.tags[0].id }
+    ];
+  }
+  renderAlertNotifications();
+}
+
+function renderAlertNotifications() {
+  const container = document.getElementById('alert-list');
+  const unreadCount = alerts.length;
+  document.getElementById('alerts-badge').textContent = unreadCount;
+
+  container.innerHTML = alerts.map(alert => {
+    const matchedTag = userSessionContext.tags.find(t => t.id === alert.associatedTagId) || { color: 'todo' };
+    return `
+      <div class="alert-item unread">
+        <div class="alert-icon" style="background: var(--tag-${matchedTag.color}-bg); color: var(--tag-${matchedTag.color}-txt)">
+          <i class="ti ti-bell"></i>
+        </div>
+        <div class="alert-body">
+          <div class="alert-title">${alert.title}</div>
+          <div class="alert-desc">${alert.desc}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function markAllRead() {
+  alerts = [];
+  document.getElementById('alert-list').innerHTML = '<div style="text-align:center; padding:2rem; color:var(--color-text-tertiary);">No new notifications caught.</div>';
+  document.getElementById('alerts-badge').textContent = '0';
+}
+
+// 8. WEEKLY DATA ANALYTICS METRIC STREAM
+function fetchWeeklySummaryStream() {
+  const textNode = document.getElementById('weekly-summary-text');
+  const totalCount = tasks.length;
+  const doneCount = tasks.filter(t => t.done).length;
+  const efficiencyRate = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+  textNode.innerHTML = `You have logged <strong>${totalCount} active tasks</strong> this tracking week. Your workspace validation resolution efficiency rate is hovering at <strong>${efficiencyRate}% complete</strong>. Keep processing system milestones!`;
+}
+
+// 9. DYNAMIC CALENDAR ARCHITECTURE INTERFACE MATRIX
+function renderCal() {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  document.getElementById('cal-month-title').textContent = months[calMonth] + ' ' + calYear;
+
+  const grid = document.getElementById('cal-grid');
+  const firstDayIndex = new Date(calYear, calMonth, 1).getDay();
+  const totalDaysCount = new Date(calYear, calMonth + 1, 0).getDate();
+
+  let htmlElementsBuffer = '';
+
+  for (let i = 0; i < firstDayIndex; i++) {
+    const dateNum = new Date(calYear, calMonth, -firstDayIndex + i + 1).getDate();
+    htmlElementsBuffer += `<div class="cal-cell other-month">${dateNum}</div>`;
+  }
+
+  for (let d = 1; d <= totalDaysCount; d++) {
+    const formattedDateString = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const targetedDayTasks = tasks.filter(t => t.date === formattedDateString);
+
+    let dotsMarkup = '';
+    if (targetedDayTasks.length > 0) {
+      dotsMarkup = '<div class="cal-dots-strip">' + targetedDayTasks.map(t => {
+        const tagRef = userSessionContext.tags.find(tag => tag.id === t.tagId) || { color: 'todo' };
+        return `<span class="cal-dot-indicator ${tagRef.color}"></span>`;
+      }).join('') + '</div>';
+    }
+
+    htmlElementsBuffer += `<div class="cal-cell">${d}${dotsMarkup}</div>`;
+  }
+
+  grid.innerHTML = htmlElementsBuffer;
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCal();
+}
+
+function renderUpcomingTasks() {
+  const container = document.getElementById('upcoming-tasks');
+  const upcoming = tasks.filter(t => !t.done).sort((a,b) => new Date(a.date) - new Date(b.date)).slice(0, 5);
+
+  if(upcoming.length === 0) {
+    container.innerHTML = '<div class="task-row"><div style="flex:1; text-align:center; color:var(--color-text-tertiary);">Clear horizon ahead.</div></div>';
+    return;
+  }
+  container.innerHTML = upcoming.map(t => {
+    const tagRef = userSessionContext.tags.find(tag => tag.id === t.tagId) || { name: 'Todo', color: 'todo' };
+    return `
+      <div class="task-row">
+        <div class="task-name">${escapeHtml(t.name)}</div>
+        <span class="tag ${tagRef.color}">${tagRef.name}</span>
+        <div class="task-date">${formatDate(t.date)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 10. SYSTEM APPLICATION NAVIGATOR CONTROLLER
+function showPage(pageId, navElement) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  
+  document.getElementById('page-' + pageId).classList.add('active');
+  if(navElement) navElement.classList.add('active');
+
+  if (pageId === 'calendar') { renderCal(); renderUpcomingTasks(); }
+  if (pageId === 'profile') { fetchWeeklySummaryStream(); }
+}
+
 function updateCounts() {
   const done = tasks.filter(t => t.done).length;
   const total = tasks.length;
@@ -217,130 +474,20 @@ function updateCounts() {
   document.getElementById('done-count').textContent = done;
   document.getElementById('done-percent').textContent = total > 0 ? Math.round((done / total) * 100) + '% done' : '0% done';
   document.getElementById('progress-count').textContent = pending;
+  document.getElementById('tasks-badge').textContent = pending;
 
   document.getElementById('p-total').textContent = total;
   document.getElementById('p-done').textContent = done;
   document.getElementById('p-rate').textContent = total > 0 ? Math.round((done / total) * 100) + '%' : '0%';
-
-  const badge = document.getElementById('tasks-badge');
-  if (badge) badge.textContent = pending;
-
-  // Due today count
-  const today = new Date().toISOString().split('T')[0];
-  const dueToday = tasks.filter(t => !t.done && t.date === today).length;
-  document.getElementById('due-today').textContent = dueToday;
 }
 
-// CALENDAR
-function renderCal() {
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  document.getElementById('cal-month-title').textContent = months[calMonth] + ' ' + calYear;
-
-  const grid = document.getElementById('cal-grid');
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const today = new Date();
-
-  let html = '';
-
-  for (let i = 0; i < firstDay; i++) {
-    const d = new Date(calYear, calMonth, -firstDay + i + 1).getDate();
-    html += `<div class="cal-cell other-month">${d}</div>`;
-  }
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const isToday = d === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear();
-    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const hasTask = tasks.some(t => t.date === dateStr);
-
-    html += `<div class="cal-cell ${isToday ? 'today' : ''} ${hasTask ? 'has-task' : ''}">${d}</div>`;
-  }
-
-  grid.innerHTML = html;
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTasks();
 }
 
-// CHANGE MONTH
-function changeMonth(dir) {
-  calMonth += dir;
-  if (calMonth > 11) {
-    calMonth = 0;
-    calYear++;
-  }
-  if (calMonth < 0) {
-    calMonth = 11;
-    calYear--;
-  }
-  renderCal();
-}
-
-// RENDER UPCOMING TASKS
-function renderUpcomingTasks() {
-  const container = document.getElementById('upcoming-tasks');
-  const upcoming = tasks
-    .filter(t => !t.done)
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 5);
-
-  if (upcoming.length === 0) {
-    container.innerHTML = '<div class="task-row"><div style="flex: 1; text-align: center; padding: 1rem; color: var(--color-text-tertiary);">No upcoming tasks</div></div>';
-    return;
-  }
-
-  container.innerHTML = upcoming.map(t => `
-    <div class="task-row">
-      <div class="check" onclick="toggleTask(${t.id})" title="Mark as done"></div>
-      <div class="task-name">${escapeHtml(t.name)}</div>
-      <span class="tag ${t.tag}">${t.tag}</span>
-      <div class="task-date">${formatDate(t.date)}</div>
-    </div>
-  `).join('');
-}
-
-// ALERTS
-function renderAlerts() {
-  const container = document.getElementById('alert-list');
-  container.innerHTML = sampleAlerts.map(alert => `
-    <div class="alert-item ${alert.unread ? 'unread' : ''}">
-      <div class="alert-icon ${alert.type}">
-        ${getAlertIcon(alert.type)}
-      </div>
-      <div class="alert-body">
-        <div class="alert-title">${alert.title}</div>
-        <div class="alert-desc">${alert.desc}</div>
-        <div class="alert-time">${alert.time}</div>
-      </div>
-      ${alert.unread ? '<div class="alert-dot"></div>' : ''}
-    </div>
-  `).join('');
-
-  const unreadCount = sampleAlerts.filter(a => a.unread).length;
-  const badge = document.getElementById('alerts-badge');
-  if (badge) badge.textContent = unreadCount;
-}
-
-function getAlertIcon(type) {
-  const icons = {
-    'warn': '<i class="ti ti-clock"></i>',
-    'info': '<i class="ti ti-bell"></i>',
-    'success': '<i class="ti ti-check"></i>',
-    'danger': '<i class="ti ti-alert-circle"></i>',
-  };
-  return icons[type] || '<i class="ti ti-info-circle"></i>';
-}
-
-function markAllRead() {
-  sampleAlerts.forEach(alert => alert.unread = false);
-  renderAlerts();
-}
-
-// UTILITIES
-function formatDate(dateStr) {
-  const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
+function handleKey(e) { if (e.key === 'Enter') addTask(); }
+function formatDate(dStr) { return new Date(dStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }

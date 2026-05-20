@@ -1,119 +1,89 @@
 import { Task, CreateTaskDto, UpdateTaskDto } from '../models/Task';
-
-// In-memory database (replace with real DB in production)
-let tasks: Task[] = [
-  {
-    id: 1,
-    name: 'Design review meeting',
-    tag: 'work',
-    done: false,
-    date: '2026-05-19',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    name: 'Submit project report',
-    tag: 'urgent',
-    done: false,
-    date: '2026-05-20',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 3,
-    name: 'Buy groceries',
-    tag: 'personal',
-    done: true,
-    date: '2026-05-18',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 4,
-    name: 'Team standup',
-    tag: 'work',
-    done: false,
-    date: '2026-05-21',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 5,
-    name: 'Fix login bug',
-    tag: 'todo',
-    done: false,
-    date: '2026-05-22',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-let nextId = 6;
+import { Database } from '../models/db';
 
 export class TaskController {
   /**
-   * Get all tasks
+   * Get all tasks, optionally filtered by user ID
    */
-  static getAllTasks(): Task[] {
-    return tasks;
+  static getAllTasks(userId?: string): Task[] {
+    const allTasks = Database.getTasks();
+    if (userId) {
+      return allTasks.filter(t => t.userId === userId);
+    }
+    return allTasks;
   }
 
   /**
-   * Get task by ID
+   * Get task by ID and user ID
    */
-  static getTaskById(id: number): Task | undefined {
-    return tasks.find(t => t.id === id);
+  static getTaskById(id: number, userId?: string): Task | undefined {
+    const allTasks = Database.getTasks();
+    return allTasks.find(t => t.id === id && (!userId || t.userId === userId));
   }
 
   /**
    * Create a new task
    */
   static createTask(dto: CreateTaskDto): Task {
+    const allTasks = Database.getTasks();
+    const maxId = allTasks.reduce((max, t) => t.id > max ? t.id : max, 0);
+    const nextId = maxId + 1;
+
     const today = new Date().toISOString().split('T')[0];
     const newTask: Task = {
-      id: nextId++,
+      id: nextId,
       name: dto.name,
-      tag: dto.tag || 'todo',
+      tagId: dto.tagId,
       done: false,
       date: dto.date || today,
+      userId: dto.userId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    tasks.push(newTask);
+
+    allTasks.push(newTask);
+    Database.saveTasks(allTasks);
     return newTask;
   }
 
   /**
    * Update a task
    */
-  static updateTask(id: number, dto: UpdateTaskDto): Task | undefined {
-    const task = tasks.find(t => t.id === id);
-    if (!task) return undefined;
+  static updateTask(id: number, dto: UpdateTaskDto, userId?: string): Task | undefined {
+    const allTasks = Database.getTasks();
+    const taskIndex = allTasks.findIndex(t => t.id === id && (!userId || t.userId === userId));
+    if (taskIndex === -1) return undefined;
 
+    const task = allTasks[taskIndex];
     if (dto.name !== undefined) task.name = dto.name;
-    if (dto.tag !== undefined) task.tag = dto.tag;
+    if (dto.tagId !== undefined) task.tagId = dto.tagId;
     if (dto.done !== undefined) task.done = dto.done;
     if (dto.date !== undefined) task.date = dto.date;
     task.updatedAt = new Date().toISOString();
 
+    allTasks[taskIndex] = task;
+    Database.saveTasks(allTasks);
     return task;
   }
 
   /**
    * Delete a task
    */
-  static deleteTask(id: number): boolean {
-    const index = tasks.findIndex(t => t.id === id);
+  static deleteTask(id: number, userId?: string): boolean {
+    const allTasks = Database.getTasks();
+    const index = allTasks.findIndex(t => t.id === id && (!userId || t.userId === userId));
     if (index === -1) return false;
-    tasks.splice(index, 1);
+
+    allTasks.splice(index, 1);
+    Database.saveTasks(allTasks);
     return true;
   }
 
   /**
    * Get tasks by status
    */
-  static getTasksByStatus(status: 'done' | 'pending'): Task[] {
+  static getTasksByStatus(status: 'done' | 'pending', userId?: string): Task[] {
+    const tasks = this.getAllTasks(userId);
     if (status === 'done') {
       return tasks.filter(t => t.done);
     } else {
@@ -124,14 +94,16 @@ export class TaskController {
   /**
    * Get tasks by tag
    */
-  static getTasksByTag(tag: string): Task[] {
-    return tasks.filter(t => t.tag === tag);
+  static getTasksByTag(tagId: string, userId?: string): Task[] {
+    const tasks = this.getAllTasks(userId);
+    return tasks.filter(t => t.tagId === tagId);
   }
 
   /**
    * Get today's tasks
    */
-  static getTodaysTasks(): Task[] {
+  static getTodaysTasks(userId?: string): Task[] {
+    const tasks = this.getAllTasks(userId);
     const today = new Date().toISOString().split('T')[0];
     return tasks.filter(t => t.date === today);
   }

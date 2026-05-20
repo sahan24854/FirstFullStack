@@ -1,58 +1,74 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light" data-color-theme="default">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>To-Do List - Task Management App</title>
+  <title>TaskSpace - Advanced To-Do Application</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+  <div id="auth-overlay" class="modal-overlay">
+    <div class="auth-card">
+      <div class="logo" style="justify-content: center; font-size: 24px; margin-bottom: 1.5rem;">
+        <i class="ti ti-check"></i> <span>TaskSpace</span>
+      </div>
+      <div id="otp-request-zone">
+        <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem;">Enter your email to receive a secure 6-digit verification access code.</p>
+        <input type="email" id="auth-email" placeholder="name@domain.com" style="width:100%; padding: 10px; margin-bottom: 1rem; border-radius: 6px; border: 1px solid var(--color-border-secondary);">
+        <button class="btn btn-primary" style="width:100%; justify-content: center;" onclick="requestOtpToken()">Send Verification Code</button>
+      </div>
+      <div id="otp-verification-zone" style="display:none;">
+        <p style="font-size: 13px; color: var(--color-text-success); margin-bottom: 1rem;">Code sent successfully! Please check your inbox.</p>
+        <input type="text" id="auth-otp" placeholder="------" max-length="6" style="width:100%; padding: 10px; margin-bottom: 1rem; border-radius: 6px; border: 1px solid var(--color-border-secondary); text-align: center; letter-spacing: 4px; font-weight: bold;">
+        <button class="btn btn-success" style="width:100%; justify-content: center; background-color: var(--color-text-success); color: white; border: none;" onclick="verifyOtpToken()">Verify & Enter Workspace</button>
+      </div>
+    </div>
+  </div>
+
   <div class="app">
-    <!-- SIDEBAR -->
     <div class="sidebar">
-      <div class="logo"><i class="ti ti-check" aria-hidden="true"></i> To-Do List</div>
+      <div class="logo"><i class="ti ti-check" aria-hidden="true"></i> <span data-loc="logo">To-Do List</span></div>
       <div class="nav-section">
-        <div class="nav-label">Menu</div>
-        <div class="nav-item active" onclick="showPage('tasks', this)"><i class="ti ti-list-check" aria-hidden="true"></i> Tasks <span class="badge" id="tasks-badge">0</span></div>
-        <div class="nav-item" onclick="showPage('calendar', this)"><i class="ti ti-calendar" aria-hidden="true"></i> Calendar</div>
-        <div class="nav-item" onclick="showPage('alerts', this)"><i class="ti ti-bell" aria-hidden="true"></i> Alerts <span class="badge" id="alerts-badge">0</span></div>
-        <div class="nav-item" onclick="showPage('profile', this)"><i class="ti ti-user" aria-hidden="true"></i> Profile</div>
+        <div class="nav-label" data-loc="menu_label">Menu</div>
+        <div class="nav-item active" id="nav-tasks" onclick="showPage('tasks', this)"><i class="ti ti-list-check" aria-hidden="true"></i> <span data-loc="nav_tasks">Tasks</span> <span class="badge" id="tasks-badge">0</span></div>
+        <div class="nav-item" id="nav-calendar" onclick="showPage('calendar', this)"><i class="ti ti-calendar" aria-hidden="true"></i> <span data-loc="nav_calendar">Calendar</span></div>
+        <div class="nav-item" id="nav-alerts" onclick="showPage('alerts', this)"><i class="ti ti-bell" aria-hidden="true"></i> <span data-loc="nav_alerts">Alerts</span> <span class="badge" id="alerts-badge">0</span></div>
+        <div class="nav-item" id="nav-profile" onclick="showPage('profile', this)"><i class="ti ti-user" aria-hidden="true"></i> <span data-loc="nav_profile">Profile</span></div>
+        <div class="nav-item" id="nav-settings" onclick="showPage('settings', this)"><i class="ti ti-settings" aria-hidden="true"></i> <span data-loc="nav_settings">Settings</span></div>
       </div>
       <div class="sidebar-footer">
         <div class="user-row">
-          <div class="avatar" id="user-avatar">SD</div>
+          <div class="avatar" id="user-avatar">U</div>
           <div>
-            <div class="user-name" id="user-name">Sahan D.</div>
-            <div class="user-email" id="user-email">sahan@email.com</div>
+            <div class="user-name" id="user-name">User</div>
+            <div class="user-email" id="user-email">email@domain.com</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- MAIN CONTENT -->
     <div class="main">
       <div class="topbar">
-        <div class="page-title" id="pageTitle">My Tasks</div>
+        <div class="page-title" id="pageTitle" data-loc="nav_tasks">My Tasks</div>
         <div class="topbar-right">
-          <button class="btn"><i class="ti ti-search" aria-hidden="true"></i> Search</button>
-          <button class="btn btn-primary" onclick="focusAdd()"><i class="ti ti-plus" aria-hidden="true"></i> Add task</button>
+          <button class="icon-btn" style="width:36px; height:36px;" onclick="showPage('settings', document.getElementById('nav-settings'))" title="Settings"><i class="ti ti-settings"></i></button>
         </div>
       </div>
 
       <div class="content">
 
-        <!-- TASKS PAGE -->
         <div class="page active" id="page-tasks">
           <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">Total tasks</div><div class="stat-value" id="total-count">0</div><div class="stat-sub">this week</div></div>
-            <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value" id="done-count">0</div><div class="stat-sub" id="done-percent">0% done</div></div>
-            <div class="stat-card"><div class="stat-label">In progress</div><div class="stat-value" id="progress-count">0</div><div class="stat-sub">remaining</div></div>
-            <div class="stat-card"><div class="stat-label">Due today</div><div class="stat-value" id="due-today">0</div><div class="stat-sub">urgent</div></div>
+            <div class="stat-card"><div class="stat-label" data-loc="stat_total">Total tasks</div><div class="stat-value" id="total-count">0</div><div class="stat-sub">this week</div></div>
+            <div class="stat-card"><div class="stat-label" data-loc="stat_completed">Completed</div><div class="stat-value" id="done-count">0</div><div class="stat-sub" id="done-percent">0% done</div></div>
+            <div class="stat-card"><div class="stat-label" data-loc="stat_progress">In progress</div><div class="stat-value" id="progress-count">0</div><div class="stat-sub">remaining</div></div>
+            <div class="stat-card"><div class="stat-label" data-loc="stat_due">Due today</div><div class="stat-value" id="due-today">0</div><div class="stat-sub">urgent</div></div>
           </div>
 
           <div class="section-header">
-            <div class="section-title">All tasks</div>
+            <div class="section-title" data-loc="section_all_tasks">All tasks</div>
             <div class="filter-row">
               <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
               <button class="filter-btn" onclick="setFilter('today', this)">Today</button>
@@ -63,75 +79,144 @@
           <div class="task-table">
             <div class="task-row header">
               <div style="width:18px"></div>
-              <div style="flex:1">Task</div>
-              <div style="width:80px">Tag</div>
-              <div class="task-date">Due date</div>
-              <div style="width:60px">Actions</div>
+              <div style="flex:1" data-loc="table_task">Task</div>
+              <div style="width:90px" data-loc="table_tag">Tag</div>
+              <div class="task-date" data-loc="table_date">Due date</div>
+              <div style="width:60px" data-loc="table_actions">Actions</div>
             </div>
             <div id="task-list"></div>
           </div>
 
-          <div class="add-task-row">
-            <input type="text" id="task-input" placeholder="Add a new task and press Enter..." onkeypress="handleKey(event)">
-            <button class="btn btn-primary" id="add-btn" onclick="addTask()"><i class="ti ti-plus" aria-hidden="true"></i> Add</button>
+          <div class="add-task-container">
+            <input type="text" id="task-input" placeholder="Add a new task description..." onkeypress="handleKey(event)">
+            <div class="add-task-meta-row">
+              <select id="task-tag-select" class="meta-select"></select>
+              <input type="date" id="task-date-select" class="meta-select">
+              <button class="btn btn-primary" id="add-btn" onclick="addTask()"><i class="ti ti-plus"></i> <span data-loc="btn_add">Add</span></button>
+            </div>
           </div>
         </div>
 
-        <!-- CALENDAR PAGE -->
         <div class="page" id="page-calendar">
           <div class="cal-nav">
-            <button class="btn" onclick="changeMonth(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+            <button class="btn" onclick="changeMonth(-1)"><i class="ti ti-chevron-left"></i></button>
             <div class="cal-month" id="cal-month-title">May 2026</div>
-            <button class="btn" onclick="changeMonth(1)"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+            <button class="btn" onclick="changeMonth(1)"><i class="ti ti-chevron-right"></i></button>
           </div>
           <div class="cal-header">
             <div class="cal-day-name">Sun</div><div class="cal-day-name">Mon</div><div class="cal-day-name">Tue</div><div class="cal-day-name">Wed</div><div class="cal-day-name">Thu</div><div class="cal-day-name">Fri</div><div class="cal-day-name">Sat</div>
           </div>
           <div class="cal-grid" id="cal-grid"></div>
           <div style="margin-top: 1.5rem;">
-            <div class="section-title" style="margin-bottom: 1rem;">Upcoming tasks</div>
+            <div class="section-title" style="margin-bottom: 1rem;" data-loc="section_upcoming">Upcoming tasks</div>
             <div class="task-table" id="upcoming-tasks"></div>
           </div>
         </div>
 
-        <!-- ALERTS PAGE -->
         <div class="page" id="page-alerts">
           <div class="section-header">
-            <div class="section-title">Notifications</div>
+            <div class="section-title" data-loc="nav_alerts">Notifications</div>
             <button class="btn" onclick="markAllRead()">Mark all read</button>
           </div>
           <div class="alert-list" id="alert-list"></div>
         </div>
 
-        <!-- PROFILE PAGE -->
         <div class="page" id="page-profile">
           <div class="profile-grid">
             <div>
               <div class="profile-card">
-                <div class="profile-avatar" id="profile-avatar">SD</div>
-                <div class="profile-name" id="profile-name">Sahan Dissanayake</div>
-                <div class="profile-role" id="profile-role">Full Stack Developer</div>
-                <div style="font-size:13px; color: var(--color-text-tertiary);" id="profile-email">sahan@email.com</div>
-                <button class="btn" style="margin-top: 1rem; width: 100%; justify-content: center;"><i class="ti ti-edit" aria-hidden="true"></i> Edit profile</button>
+                <div class="profile-avatar" id="profile-avatar-display">U</div>
+                <h3 class="profile-name" id="profile-name-display">User Name</h3>
+                <div class="profile-role" id="profile-bio-display">Bio details...</div>
+                <div style="font-size:13px; color: var(--color-text-tertiary); margin-bottom:1rem;" id="profile-email-display">email@domain.com</div>
+                
                 <div class="profile-stats">
                   <div class="pstat"><div class="pstat-val" id="p-total">0</div><div class="pstat-label">Total</div></div>
                   <div class="pstat"><div class="pstat-val" id="p-done">0</div><div class="pstat-label">Done</div></div>
                   <div class="pstat"><div class="pstat-val" id="p-rate">0%</div><div class="pstat-label">Rate</div></div>
                 </div>
               </div>
-            </div>
-            <div>
-              <div class="section-title" style="margin-bottom: 1rem;">Settings</div>
-              <div class="settings-card">
-                <div class="settings-row"><div><div class="settings-label">Email notifications</div><div class="settings-sub">Receive task reminders by email</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-                <div class="settings-row"><div><div class="settings-label">Push notifications</div><div class="settings-sub">Get alerts on your device</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-                <div class="settings-row"><div><div class="settings-label">Dark mode</div><div class="settings-sub">Switch to dark theme</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
-                <div class="settings-row"><div><div class="settings-label">Weekly summary</div><div class="settings-sub">Get a weekly productivity report</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-                <div class="settings-row"><div><div class="settings-label">Language</div></div><select style="font-size:13px; padding: 5px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary);"><option>English</option><option>Sinhala</option></select></div>
+
+              <div class="summary-card" style="margin-top: 1rem; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); padding: 1.25rem; border-radius: 12px;">
+                <h4 style="font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><i class="ti ti-chart-bar" style="color:var(--color-text-info)"></i> <span data-loc="weekly_summary_title">Weekly Performance Summary</span></h4>
+                <p id="weekly-summary-text" style="font-size:12px; color: var(--color-text-secondary); line-height:1.4;">Loading summary analytics stream...</p>
               </div>
-              <button class="btn" style="margin-top: 1rem; color: var(--color-text-danger); border-color: var(--color-border-danger);"><i class="ti ti-logout" aria-hidden="true"></i> Sign out</button>
+            </div>
+
+            <div>
+              <div class="section-title" style="margin-bottom: 1rem;" data-loc="profile_edit_title">Modify Profile Details</div>
+              <div class="settings-card" style="padding: 1.5rem; display:flex; flex-direction:column; gap:12px;">
+                <div>
+                  <label style="font-size:12px; font-weight:500;" data-loc="label_name">Display Name</label>
+                  <input type="text" id="edit-profile-name" style="width:100%; padding:8px; margin-top:4px; border-radius:6px; border:0.5px solid var(--color-border-secondary); background:var(--color-background-primary); color:var(--color-text-primary);">
+                </div>
+                <div>
+                  <label style="font-size:12px; font-weight:500;" data-loc="label_bio">Short Bio</label>
+                  <textarea id="edit-profile-bio" rows="3" style="width:100%; padding:8px; margin-top:4px; border-radius:6px; border:0.5px solid var(--color-border-secondary); background:var(--color-background-primary); color:var(--color-text-primary); font-family:inherit;"></textarea>
+                </div>
+                <button class="btn btn-primary" style="align-self: flex-start;" onclick="saveProfileChanges()">Save Changes</button>
+              </div>
             </div>
           </div>
+        </div>
+
+        <div class="page" id="page-settings">
+          <div class="section-title" style="margin-bottom: 1rem;" data-loc="nav_settings">System Settings</div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <div>
+                <div class="settings-label" data-loc="setting_mode">Interface Display Mode</div>
+                <div class="settings-sub">Toggle between light and dark visual aesthetics</div>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <button class="filter-btn active" id="theme-btn-light" onclick="applyTheme('light')">Light</button>
+                <button class="filter-btn" id="theme-btn-dark" onclick="applyTheme('dark')">Dark</button>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div>
+                <div class="settings-label" data-loc="setting_color">Palette Configuration Tint</div>
+                <div class="settings-sub">Choose application accent highlight states</div>
+              </div>
+              <div class="palette-swatch-container">
+                <span class="swatch core-default" title="Midnight Black" onclick="applyPalette('default')"></span>
+                <span class="swatch core-emerald" title="Emerald Green" onclick="applyPalette('emerald')"></span>
+                <span class="swatch core-ocean" title="Ocean Blue" onclick="applyPalette('ocean')"></span>
+                <span class="swatch core-sunset" title="Sunset Orange" onclick="applyPalette('sunset')"></span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div>
+                <div class="settings-label" data-loc="setting_lang">Active Localization Engine</div>
+                <div class="settings-sub">Switch workspace translations strings</div>
+              </div>
+              <select id="lang-select-dropdown" onchange="applyLanguage(this.value)" style="font-size:13px; padding: 6px 12px; border-radius: 6px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary);">
+                <option value="en">English (US)</option>
+                <option value="si">සිංහල (Sinhala)</option>
+              </select>
+            </div>
+
+            <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: 12px;">
+              <div>
+                <div class="settings-label" data-loc="custom_tags_title">Workspace Tag Personalization</div>
+                <div class="settings-sub">Create your own customized tags below</div>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <input type="text" id="new-tag-name-input" placeholder="Tag Name..." style="flex:1; padding:8px; border-radius:6px; border:0.5px solid var(--color-border-secondary); background:var(--color-background-primary); color:var(--color-text-primary);">
+                <select id="new-tag-color-select" style="padding:8px; border-radius:6px; border:0.5px solid var(--color-border-secondary); background:var(--color-background-primary); color:var(--color-text-primary);">
+                  <option value="work">Green</option>
+                  <option value="personal">Blue</option>
+                  <option value="urgent">Red</option>
+                  <option value="todo">Orange</option>
+                </select>
+                <button class="btn btn-primary" onclick="createUserCustomTag()"><i class="ti ti-plus"></i> Create</button>
+              </div>
+              <div id="custom-tags-current-list" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;"></div>
+            </div>
+          </div>
+          <button class="btn" style="margin-top: 1rem; color: var(--color-text-danger); border-color: var(--color-text-danger);" onclick="location.reload()"><i class="ti ti-logout"></i> Sign out</button>
         </div>
 
       </div>
