@@ -1,4 +1,4 @@
-# Quick Reference - Taskly
+# Quick Reference - To-Do List
 
 ## ⚡ Quick Start (30 seconds)
 

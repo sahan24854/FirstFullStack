@@ -1,8 +1,8 @@
-# Architecture Documentation - Taskly
+# Architecture Documentation - To-Do List
 
 ## System Overview
 
-Taskly is a full-stack task management application with a clean separation between frontend and backend.
+To-Do List is a full-stack task management application with a clean separation between frontend and backend.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -410,7 +410,7 @@ if (!task) {
 
 ## Summary
 
-Taskly follows a clean separation of concerns with:
+To-Do List follows a clean separation of concerns with:
 - **Frontend**: Presentation and user interaction
 - **Backend**: Business logic and data management
 - **API**: JSON-based communication protocol

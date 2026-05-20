@@ -1,4 +1,4 @@
-# Frontend - Taskly UI
+# Frontend - To-Do List UI
 
 A beautiful, responsive task management interface built from Figma design.
 

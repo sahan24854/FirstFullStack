@@ -1,6 +1,6 @@
-# Backend - Taskly API
+# Backend - To-Do List API
 
-Node.js/Express.js REST API for the Taskly task management application.
+Node.js/Express.js REST API for the To-Do List task management application.
 
 ## Quick Start
 

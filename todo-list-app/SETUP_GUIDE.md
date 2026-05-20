@@ -1,6 +1,6 @@
-# Setup Guide - Taskly Full-Stack Application
+# Setup Guide - To-Do List Full-Stack Application
 
-Complete setup instructions for running the Taskly task management application.
+Complete setup instructions for running the To-Do List task management application.
 
 ## Prerequisites
 
@@ -57,7 +57,7 @@ You should see:
 
 ```
 ╔════════════════════════════════════════╗
-║     Taskly API Server                  ║
+║     To-Do List API Server                  ║
 ║     Running on port 5000               ║
 ║     Environment: development           ║
 ║                                        ║
@@ -93,7 +93,7 @@ Available on:
 
 Visit `http://localhost:8080` in your web browser.
 
-You should now see the Taskly interface with:
+You should now see the To-Do List interface with:
 - Sidebar navigation
 - Tasks page (active by default)
 - Calendar, Alerts, and Profile sections
@@ -348,4 +348,4 @@ Backend Server (Port 5000)
    └-- In-Memory Database
 ```
 
-Enjoy using Taskly! 🎉
+Enjoy using To-Do List! 🎉

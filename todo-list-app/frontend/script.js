@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:3000/api';
 
 let tasks = [];
 let alerts = [];
@@ -35,7 +35,7 @@ function showPage(page, el) {
   document.getElementById('page-' + page).classList.add('active');
   el.classList.add('active');
   document.getElementById('pageTitle').textContent = pageTitles[page];
-  
+
   if (page === 'calendar') {
     renderCal();
     renderUpcomingTasks();
@@ -72,19 +72,19 @@ function loadSampleTasks() {
 function renderTasks() {
   const list = document.getElementById('task-list');
   let filtered = tasks;
-  
+
   if (currentFilter === 'today') {
     const today = new Date().toISOString().split('T')[0];
     filtered = tasks.filter(t => !t.done && t.date === today);
   } else if (currentFilter === 'done') {
     filtered = tasks.filter(t => t.done);
   }
-  
+
   if (filtered.length === 0) {
     list.innerHTML = '<div class="task-row"><div style="flex: 1; text-align: center; padding: 1rem; color: var(--color-text-tertiary);">No tasks found</div></div>';
     return;
   }
-  
+
   list.innerHTML = filtered.map(t => `
     <div class="task-row">
       <div class="check ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})" title="Mark as done">
@@ -106,16 +106,16 @@ function renderTasks() {
 async function toggleTask(id) {
   const task = tasks.find(t => t.id === id);
   if (!task) return;
-  
+
   task.done = !task.done;
-  
+
   try {
     const response = await fetch(`${API_URL}/tasks/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(task)
     });
-    
+
     if (response.ok) {
       renderTasks();
       updateCounts();
@@ -129,12 +129,12 @@ async function toggleTask(id) {
 // DELETE TASK
 async function deleteTask(id) {
   if (!confirm('Are you sure you want to delete this task?')) return;
-  
+
   try {
     const response = await fetch(`${API_URL}/tasks/${id}`, {
       method: 'DELETE'
     });
-    
+
     if (response.ok) {
       tasks = tasks.filter(t => t.id !== id);
       renderTasks();
@@ -149,28 +149,28 @@ async function deleteTask(id) {
 async function addTask() {
   const input = document.getElementById('task-input');
   const name = input.value.trim();
-  
+
   if (!name) {
     alert('Please enter a task name');
     return;
   }
-  
+
   const today = new Date().toISOString().split('T')[0];
-  
+
   const newTask = {
     name,
     tag: 'todo',
     done: false,
     date: today
   };
-  
+
   try {
     const response = await fetch(`${API_URL}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTask)
     });
-    
+
     if (response.ok) {
       const addedTask = await response.json();
       tasks.push(addedTask);
@@ -212,19 +212,19 @@ function updateCounts() {
   const done = tasks.filter(t => t.done).length;
   const total = tasks.length;
   const pending = total - done;
-  
+
   document.getElementById('total-count').textContent = total;
   document.getElementById('done-count').textContent = done;
   document.getElementById('done-percent').textContent = total > 0 ? Math.round((done / total) * 100) + '% done' : '0% done';
   document.getElementById('progress-count').textContent = pending;
-  
+
   document.getElementById('p-total').textContent = total;
   document.getElementById('p-done').textContent = done;
   document.getElementById('p-rate').textContent = total > 0 ? Math.round((done / total) * 100) + '%' : '0%';
-  
+
   const badge = document.getElementById('tasks-badge');
   if (badge) badge.textContent = pending;
-  
+
   // Due today count
   const today = new Date().toISOString().split('T')[0];
   const dueToday = tasks.filter(t => !t.done && t.date === today).length;
@@ -233,29 +233,29 @@ function updateCounts() {
 
 // CALENDAR
 function renderCal() {
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   document.getElementById('cal-month-title').textContent = months[calMonth] + ' ' + calYear;
-  
+
   const grid = document.getElementById('cal-grid');
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   const today = new Date();
-  
+
   let html = '';
-  
+
   for (let i = 0; i < firstDay; i++) {
     const d = new Date(calYear, calMonth, -firstDay + i + 1).getDate();
     html += `<div class="cal-cell other-month">${d}</div>`;
   }
-  
+
   for (let d = 1; d <= daysInMonth; d++) {
     const isToday = d === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear();
     const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const hasTask = tasks.some(t => t.date === dateStr);
-    
+
     html += `<div class="cal-cell ${isToday ? 'today' : ''} ${hasTask ? 'has-task' : ''}">${d}</div>`;
   }
-  
+
   grid.innerHTML = html;
 }
 
@@ -280,12 +280,12 @@ function renderUpcomingTasks() {
     .filter(t => !t.done)
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(0, 5);
-  
+
   if (upcoming.length === 0) {
     container.innerHTML = '<div class="task-row"><div style="flex: 1; text-align: center; padding: 1rem; color: var(--color-text-tertiary);">No upcoming tasks</div></div>';
     return;
   }
-  
+
   container.innerHTML = upcoming.map(t => `
     <div class="task-row">
       <div class="check" onclick="toggleTask(${t.id})" title="Mark as done"></div>
@@ -312,7 +312,7 @@ function renderAlerts() {
       ${alert.unread ? '<div class="alert-dot"></div>' : ''}
     </div>
   `).join('');
-  
+
   const unreadCount = sampleAlerts.filter(a => a.unread).length;
   const badge = document.getElementById('alerts-badge');
   if (badge) badge.textContent = unreadCount;

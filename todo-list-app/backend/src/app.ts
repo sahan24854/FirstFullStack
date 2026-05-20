@@ -30,7 +30,7 @@ app.use('/api', taskRoutes);
 // Root route
 app.get('/', (req: Request, res: Response) => {
   res.json({
-    message: 'Taskly API Server',
+    message: 'To-Do List API Server',
     version: '1.0.0',
     endpoints: {
       tasks: '/api/tasks',
@@ -54,7 +54,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 app.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════╗
-║     Taskly API Server                  ║
+║     To-Do List API Server                  ║
 ║     Running on port ${PORT}               ║
 ║     Environment: ${process.env.NODE_ENV || 'development'}        ║
 ║                                        ║

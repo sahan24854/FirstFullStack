@@ -1,4 +1,4 @@
-# Taskly - Task Management App
+# To-Do List - Task Management App
 
 A full-stack task management application with a modern UI built from Figma design.
 
