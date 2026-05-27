@@ -491,3 +491,8 @@ function setFilter(f, el) {
 function handleKey(e) { if (e.key === 'Enter') addTask(); }
 function formatDate(dStr) { return new Date(dStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
 function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+// Automatically bypass the OTP screen on page load
+window.addEventListener('DOMContentLoaded', () => {
+    mockFallbackAuthentication('developer@local.host');
+});
