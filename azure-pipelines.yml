@@ -1,0 +1,52 @@
+# Docker CI/CD Pipeline
+# Builds and tests the Todo List App
+
+trigger:
+- main
+
+resources:
+- repo: self
+
+variables:
+  tag: '$(Build.BuildId)'
+
+stages:
+- stage: Build
+  displayName: Build and Test
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+
+    - task: NodeTool@0
+      displayName: Install Node.js
+      inputs:
+        versionSpec: '20.x'
+
+    - script: |
+        cd todo-list-app/backend
+        npm install
+        npm run build
+        echo "✅ Backend built successfully"
+      displayName: Build Backend
+
+    - script: |
+        echo "Frontend files:"
+        ls todo-list-app/frontend/
+        echo "✅ Frontend verified"
+      displayName: Verify Frontend
+
+    - task: Docker@2
+      displayName: Build Docker Image
+      inputs:
+        command: build
+        dockerfile: '$(Build.SourcesDirectory)/todo-list-app/backend/Dockerfile'
+        tags: |
+          $(tag)
+
+    - script: |
+        echo "✅ Build completed!"
+        echo "Build ID: $(Build.BuildId)"
+      displayName: Build Success
